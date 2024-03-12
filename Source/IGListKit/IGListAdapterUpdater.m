@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -14,6 +14,7 @@
 #endif
 
 #import "IGListAdapterUpdaterHelpers.h"
+#import "IGListDefaultExperiments.h"
 #import "IGListIndexSetResultInternal.h"
 #import "IGListMoveIndexPathInternal.h"
 #import "IGListReloadIndexPath.h"
@@ -37,6 +38,7 @@
     if (self = [super init]) {
         _transactionBuilder = [IGListUpdateTransactionBuilder new];
         _allowsReloadingOnTooManyUpdates = YES;
+        _experiments = IGListDefaultExperiments();
     }
     return self;
 }
@@ -121,6 +123,10 @@
     [transaction begin];
 }
 
+- (BOOL)isInDataUpdateBlock {
+    return self.transaction.state == IGListBatchUpdateStateExecutingBatchUpdateBlock;
+}
+
 #pragma mark - IGListUpdatingDelegate
 
 static BOOL IGListIsEqual(const void *a, const void *b, NSUInteger (*size)(const void *item)) {
@@ -173,7 +179,7 @@ static NSUInteger IGListIdentifierHash(const void *item, NSUInteger (*size)(cons
 
     // if already inside the execution of the update block, immediately unload the itemUpdates block.
     // the completion blocks are executed later in the lifecycle, so that still needs to be added to the batch
-    if (self.transaction.state == IGListBatchUpdateStateExecutingBatchUpdateBlock) {
+    if ([self isInDataUpdateBlock]) {
         if (completion != nil) {
             [self.transaction addCompletionBlock:completion];
         }
@@ -238,7 +244,7 @@ static NSUInteger IGListIdentifierHash(const void *item, NSUInteger (*size)(cons
     IGAssertMainThread();
     IGParameterAssert(collectionView != nil);
     IGParameterAssert(indexPaths != nil);
-    if (self.transaction.state == IGListBatchUpdateStateExecutingBatchUpdateBlock) {
+    if ([self isInDataUpdateBlock]) {
         [self.transaction insertItemsAtIndexPaths:indexPaths];
     } else {
         [self.delegate listAdapterUpdater:self willInsertIndexPaths:indexPaths collectionView:collectionView];
@@ -250,7 +256,7 @@ static NSUInteger IGListIdentifierHash(const void *item, NSUInteger (*size)(cons
     IGAssertMainThread();
     IGParameterAssert(collectionView != nil);
     IGParameterAssert(indexPaths != nil);
-    if (self.transaction.state == IGListBatchUpdateStateExecutingBatchUpdateBlock) {
+    if ([self isInDataUpdateBlock]) {
         [self.transaction deleteItemsAtIndexPaths:indexPaths];
     } else {
         [self.delegate listAdapterUpdater:self willDeleteIndexPaths:indexPaths collectionView:collectionView];
@@ -261,7 +267,7 @@ static NSUInteger IGListIdentifierHash(const void *item, NSUInteger (*size)(cons
 - (void)moveItemInCollectionView:(UICollectionView *)collectionView
                    fromIndexPath:(NSIndexPath *)fromIndexPath
                      toIndexPath:(NSIndexPath *)toIndexPath {
-    if (self.transaction.state == IGListBatchUpdateStateExecutingBatchUpdateBlock) {
+    if ([self isInDataUpdateBlock]) {
         [self.transaction moveItemFromIndexPath:fromIndexPath toIndexPath:toIndexPath];
     } else {
         [self.delegate listAdapterUpdater:self willMoveFromIndexPath:fromIndexPath toIndexPath:toIndexPath collectionView:collectionView];
@@ -272,7 +278,7 @@ static NSUInteger IGListIdentifierHash(const void *item, NSUInteger (*size)(cons
 - (void)reloadItemInCollectionView:(UICollectionView *)collectionView
                      fromIndexPath:(NSIndexPath *)fromIndexPath
                        toIndexPath:(NSIndexPath *)toIndexPath {
-    if (self.transaction.state == IGListBatchUpdateStateExecutingBatchUpdateBlock) {
+    if ([self isInDataUpdateBlock]) {
         [self.transaction reloadItemFromIndexPath:fromIndexPath toIndexPath:toIndexPath];
     } else {
         [self.delegate listAdapterUpdater:self willReloadIndexPaths:@[fromIndexPath] collectionView:collectionView];
@@ -284,7 +290,7 @@ static NSUInteger IGListIdentifierHash(const void *item, NSUInteger (*size)(cons
     IGAssertMainThread();
     IGParameterAssert(collectionView != nil);
     IGParameterAssert(sections != nil);
-    if (self.transaction.state == IGListBatchUpdateStateExecutingBatchUpdateBlock) {
+    if ([self isInDataUpdateBlock]) {
         [self.transaction reloadSections:sections];
     } else {
         [self.delegate listAdapterUpdater:self willReloadSections:sections collectionView:collectionView];
@@ -313,11 +319,8 @@ static NSUInteger IGListIdentifierHash(const void *item, NSUInteger (*size)(cons
 
     id<IGListAdapterUpdaterDelegate> delegate = self.delegate;
 
-    NSMutableIndexSet *visibleSections = [NSMutableIndexSet new];
     NSArray *visibleIndexPaths = [collectionView indexPathsForVisibleItems];
-    for (NSIndexPath *visibleIndexPath in visibleIndexPaths) {
-        [visibleSections addIndex:visibleIndexPath.section];
-    }
+    NSIndexSet *visibleSections = IGListSectionIndexFromIndexPaths(visibleIndexPaths);
 
     [delegate listAdapterUpdater:self willReloadSections:visibleSections collectionView:collectionView];
 

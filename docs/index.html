@@ -16,19 +16,19 @@
     <a title="IGListKit  Reference"></a>
     <header>
       <div class="content-wrapper">
-        <p><a href="index.html">IGListKit 4.1.0 Docs</a> (94% documented)</p>
-        <p class="header-right"><a href="https://github.com/Instagram/IGListKit"><img src="img/gh.png"/>View on GitHub</a></p>
-        <p class="header-right">
+        <p><a href="index.html">IGListKit 4.1.0 Docs</a> (93% documented)</p>
+        <p class="header-right"><a href="https://github.com/Instagram/IGListKit"><img src="img/gh.png" alt="GitHub"/>View on GitHub</a></p>
+        <div class="header-right">
           <form role="search" action="search.json">
             <input type="text" placeholder="Search documentation" data-typeahead>
           </form>
-        </p>
+        </div>
       </div>
     </header>
     <div class="content-wrapper">
       <p id="breadcrumbs">
         <a href="index.html">IGListKit Reference</a>
-        <img id="carat" src="img/carat.png" />
+        <img id="carat" src="img/carat.png" alt=""/>
         IGListKit  Reference
       </p>
     </div>
@@ -114,6 +114,9 @@
               </li>
               <li class="nav-group-task">
                 <a href="Classes/IGListSingleSectionController.html">IGListSingleSectionController</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="Classes/IGListTransitionData.html">IGListTransitionData</a>
               </li>
             </ul>
           </li>
@@ -283,16 +286,16 @@
           <section class="section">
             
             <p align="center">
-  <img src="https://raw.githubusercontent.com/Instagram/IGListKit/master/Resources/logo-animation.gif" width=400 />
+  <img src="https://raw.githubusercontent.com/Instagram/IGListKit/main/Resources/logo-animation.gif" width=400 />
 </p>
 
 <p align="center">
-    <a href="https://travis-ci.org/Instagram/IGListKit">
-        <img src="https://travis-ci.org/Instagram/IGListKit.svg?branch=master&style=flat"
+    <a href="https://github.com/Instagram/IGListKit/actions/workflows/CI.yml">
+        <img src="https://img.shields.io/github/actions/workflow/status/Instagram/IGListKit/CI.yml"
              alt="Build Status">
     </a>
-    <a href="https://coveralls.io/github/Instagram/IGListKit?branch=master">
-      <img src="https://coveralls.io/repos/github/Instagram/IGListKit/badge.svg?branch=master"
+    <a href="https://coveralls.io/github/Instagram/IGListKit?branch=main">
+      <img src="https://coveralls.io/repos/github/Instagram/IGListKit/badge.svg?branch=main"
            alt="Coverage Status" />
     </a>
     <a href="https://cocoapods.org/pods/IGListKit">
@@ -358,7 +361,7 @@
 </tbody></table>
 
 <p><code>IGListKit</code> is built and maintained with &#10084;&#65039; by <a href="https://engineering.instagram.com/">Instagram engineering</a>.
-We use the open source version <code>master</code> branch in the Instagram app.</p>
+We use the open source version <code>main</code> branch in the Instagram app.</p>
 <h2 id='multilingual-translation' class='heading'>Multilingual translation</h2>
 
 <p><a href="README.zh.md">Chinese README</a></p>
@@ -396,15 +399,13 @@ Enter package URL: https://github.com/Instagram/IGListKit, and select the latest
 <p>For advanced usage, see our <a href="https://instagram.github.io/IGListKit/installation.html">Installation Guide</a>.</p>
 </blockquote>
 <h2 id='getting-started' class='heading'>Getting Started</h2>
-<pre class="highlight shell"><code><span class="nv">$ </span>git clone https://github.com/Instagram/IGListKit.git
-<span class="nv">$ </span><span class="nb">cd </span>IGListKit/
-<span class="nv">$ </span>./scripts/setup.sh
-</code></pre>
+
+<p>Try out IGListKit by opening any of the sample apps available in the <code>Examples</code> directory.</p>
 
 <ul>
 <li>Our <a href="https://instagram.github.io/IGListKit/getting-started.html">Getting Started guide</a></li>
 <li>Ray Wenderlich&rsquo;s <a href="https://www.raywenderlich.com/147162/iglistkit-tutorial-better-uicollectionviews">IGListKit Tutorial: Better UICollectionViews</a></li>
-<li>Our <a href="https://github.com/Instagram/IGListKit/tree/master/Examples">example projects</a></li>
+<li>Our <a href="https://github.com/Instagram/IGListKit/tree/main/Examples">example projects</a></li>
 <li>Ryan Nystrom&rsquo;s <a href="https://academy.realm.io/posts/tryswift-ryan-nystrom-refactoring-at-scale-lessons-learned-rewriting-instagram-feed/">talk at try! Swift NYC</a>(Note: this talk was for an earlier version. Some APIs have changed.)</li>
 <li><a href="https://medium.com/cocoaacademymag/iglistkit-migrating-an-uitableview-to-iglistkitcollectionview-65a30cf9bac9">Migrating an UITableView to IGListCollectionView</a>, by Rodrigo Cavalcante</li>
 <li><a href="https://overflow.buffer.com/2017/04/10/keeping-data-fresh-buffer-ios-asyncdisplaykit-iglistkit-pusher/">Keeping data fresh in Buffer for iOS with AsyncDisplayKit, IGListKit &amp; Pusher</a>, Andy Yates, Buffer</li>
@@ -416,10 +417,10 @@ Enter package URL: https://github.com/Instagram/IGListKit, and select the latest
 <p>To regenerate docs, run <code>./scripts/build_docs.sh</code> from the root directory in the repo.</p>
 <h2 id='vision' class='heading'>Vision</h2>
 
-<p>For the long-term goals and &ldquo;vision&rdquo; of <code>IGListKit</code>, please read our <a href="https://github.com/Instagram/IGListKit/blob/master/Guides/VISION.md">Vision</a> doc.</p>
+<p>For the long-term goals and &ldquo;vision&rdquo; of <code>IGListKit</code>, please read our <a href="https://github.com/Instagram/IGListKit/blob/main/Guides/VISION.md">Vision</a> doc.</p>
 <h2 id='contributing' class='heading'>Contributing</h2>
 
-<p>Please see the <a href="https://github.com/Instagram/IGListKit/blob/master/.github/CONTRIBUTING.md">CONTRIBUTING</a> file for how to help. At Instagram, we sync the open source version of <code>IGListKit</code> daily, so we&rsquo;re always testing the latest changes. But that requires all changes be thoroughly tested and follow our style guide.</p>
+<p>Please see the <a href="https://github.com/Instagram/IGListKit/blob/main/.github/CONTRIBUTING.md">CONTRIBUTING</a> file for how to help. At Instagram, we sync the open source version of <code>IGListKit</code> daily, so we&rsquo;re always testing the latest changes. But that requires all changes be thoroughly tested and follow our style guide.</p>
 
 <p>We have a set of <a href="https://github.com/Instagram/IGListKit/issues?q=is%3Aissue+is%3Aopen+label%3Astarter-task">starter tasks</a> that are great for beginners to jump in on and start contributing.</p>
 <h2 id='license' class='heading'>License</h2>
@@ -427,15 +428,17 @@ Enter package URL: https://github.com/Instagram/IGListKit, and select the latest
 <p><code>IGListKit</code> is <a href="./LICENSE.md">MIT-licensed</a>.</p>
 
 <p>The files in the <code>/Examples/</code> directory are licensed under a separate license as specified in each file. Documentation is licensed <a href="https://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a>.</p>
+<h2 id='legal' class='heading'>Legal</h2>
+
+<p>Copyright © Meta Platforms, Inc &#x2022; <a href="https://opensource.fb.com/legal/terms">Terms of Use</a> &#x2022; <a href="https://opensource.fb.com/legal/privacy">Privacy Policy</a></p>
 
           </section>
         </section>
         <section id="footer">
-          <p>&copy; 2021 <a class="link" href="https://twitter.com/fbOpenSource" target="_blank" rel="external">Instagram</a>. All rights reserved. (Last updated: 2021-10-20)</p>
-          <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external">jazzy ♪♫ v0.13.7</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external">Realm</a> project.</p>
+          <p>&copy; 2023 <a class="link" href="https://twitter.com/MetaOpenSource" target="_blank" rel="external noopener">Instagram</a>. All rights reserved. (Last updated: 2023-04-07)</p>
+          <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external noopener">jazzy ♪♫ v0.14.3</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external noopener">Realm</a> project.</p>
         </section>
       </article>
     </div>
   </body>
-</div>
 </html>

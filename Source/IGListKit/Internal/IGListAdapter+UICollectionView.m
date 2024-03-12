@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -61,7 +61,12 @@
 - (UICollectionReusableView *)collectionView:(UICollectionView *)collectionView viewForSupplementaryElementOfKind:(NSString *)kind atIndexPath:(NSIndexPath *)indexPath {
     IGListSectionController *sectionController = [self sectionControllerForSection:indexPath.section];
     id <IGListSupplementaryViewSource> supplementarySource = [sectionController supplementaryViewSource];
+
+    // flag that a supplementary view is being dequeued in case it tries to access a supplementary view in the process
+    _isDequeuingSupplementaryView = YES;
     UICollectionReusableView *view = [supplementarySource viewForSupplementaryElementOfKind:kind atIndex:indexPath.item];
+    _isDequeuingSupplementaryView = NO;
+
     IGAssert(view != nil, @"Returned a nil supplementary view at indexPath <%@> from section controller: <%@>, supplementary source: <%@>", indexPath, sectionController, supplementarySource);
 
     // associate the section controller with the cell so that we know which section controller is using it
@@ -127,6 +132,11 @@
     return [sectionController shouldSelectItemAtIndex:indexPath.item];
 }
 
+- (BOOL)collectionView:(UICollectionView *)collectionView shouldDeselectItemAtIndexPath:(NSIndexPath *)indexPath {
+    IGListSectionController * sectionController = [self sectionControllerForSection:indexPath.section];
+    return [sectionController shouldDeselectItemAtIndex:indexPath.item];
+}
+
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
     // forward this method to the delegate b/c this implementation will steal the message from the proxy
     id<UICollectionViewDelegate> collectionViewDelegate = self.collectionViewDelegate;
@@ -159,17 +169,12 @@
         [collectionViewDelegate collectionView:collectionView willDisplayCell:cell forItemAtIndexPath:indexPath];
     }
 
-    IGListSectionController *sectionController;
-    if (IGListExperimentEnabled(self.experiments, IGListExperimentSkipViewSectionControllerMap)) {
+    IGListSectionController *sectionController = [self sectionControllerForView:cell];
+    // if the section controller relationship was destroyed, reconnect it
+    // this happens with iOS 10 UICollectionView display range changes
+    if (sectionController == nil) {
         sectionController = [self sectionControllerForSection:indexPath.section];
-    } else {
-        sectionController = [self sectionControllerForView:cell];
-        // if the section controller relationship was destroyed, reconnect it
-        // this happens with iOS 10 UICollectionView display range changes
-        if (sectionController == nil) {
-            sectionController = [self sectionControllerForSection:indexPath.section];
-            [self mapView:cell toSectionController:sectionController];
-        }
+        [self mapView:cell toSectionController:sectionController];
     }
 
     id object = [self.sectionMap objectForSection:indexPath.section];
@@ -192,12 +197,7 @@
         [collectionViewDelegate collectionView:collectionView didEndDisplayingCell:cell forItemAtIndexPath:indexPath];
     }
 
-    IGListSectionController *sectionController;
-    if (IGListExperimentEnabled(self.experiments, IGListExperimentSkipViewSectionControllerMap)) {
-        sectionController = [self sectionControllerForSection:indexPath.section];
-    } else {
-        sectionController = [self sectionControllerForView:cell];
-    }
+    IGListSectionController *const sectionController = [self sectionControllerForView:cell];
     [self.displayHandler didEndDisplayingCell:cell forListAdapter:self sectionController:sectionController indexPath:indexPath];
     [self.workingRangeHandler didEndDisplayingItemAtIndexPath:indexPath forListAdapter:self];
 
@@ -213,17 +213,12 @@
         [collectionViewDelegate collectionView:collectionView willDisplaySupplementaryView:view forElementKind:elementKind atIndexPath:indexPath];
     }
 
-    IGListSectionController *sectionController;
-    if (IGListExperimentEnabled(self.experiments, IGListExperimentSkipViewSectionControllerMap)) {
+    IGListSectionController *sectionController = [self sectionControllerForView:view];
+    // if the section controller relationship was destroyed, reconnect it
+    // this happens with iOS 10 UICollectionView display range changes
+    if (sectionController == nil) {
         sectionController = [self sectionControllerForSection:indexPath.section];
-    } else {
-        sectionController = [self sectionControllerForView:view];
-        // if the section controller relationship was destroyed, reconnect it
-        // this happens with iOS 10 UICollectionView display range changes
-        if (sectionController == nil) {
-            sectionController = [self sectionControllerForSection:indexPath.section];
-            [self mapView:view toSectionController:sectionController];
-        }
+        [self mapView:view toSectionController:sectionController];
     }
 
     id object = [self.sectionMap objectForSection:indexPath.section];
@@ -236,12 +231,7 @@
         [collectionViewDelegate collectionView:collectionView didEndDisplayingSupplementaryView:view forElementOfKind:elementKind atIndexPath:indexPath];
     }
 
-    IGListSectionController *sectionController;
-    if (IGListExperimentEnabled(self.experiments, IGListExperimentSkipViewSectionControllerMap)) {
-        sectionController = [self sectionControllerForSection:indexPath.section];
-    } else {
-        sectionController = [self sectionControllerForView:view];
-    }
+    IGListSectionController *sectionController = [self sectionControllerForView:view];
     [self.displayHandler didEndDisplayingSupplementaryView:view forListAdapter:self sectionController:sectionController indexPath:indexPath];
 
     [self removeMapForView:view];
@@ -272,7 +262,7 @@
 #pragma mark - UICollectionViewDelegateFlowLayout
 
 - (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout sizeForItemAtIndexPath:(NSIndexPath *)indexPath {
-    IGAssert(![self.collectionViewDelegate respondsToSelector:_cmd], @"IGListAdapter is consuming method also implemented by the collectionViewDelegate: %@", NSStringFromSelector(_cmd));
+    IGWarn(![self.collectionViewDelegate respondsToSelector:_cmd], @"IGListAdapter is consuming method also implemented by the collectionViewDelegate: %@", NSStringFromSelector(_cmd));
 
     CGSize size = [self sizeForItemAtIndexPath:indexPath];
     IGAssert(!isnan(size.height), @"IGListAdapter returned NaN height = %f for item at indexPath <%@>", size.height, indexPath);
@@ -282,28 +272,28 @@
 }
 
 - (UIEdgeInsets)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout insetForSectionAtIndex:(NSInteger)section {
-    IGAssert(![self.collectionViewDelegate respondsToSelector:_cmd], @"IGListAdapter is consuming method also implemented by the collectionViewDelegate: %@", NSStringFromSelector(_cmd));
+    IGWarn(![self.collectionViewDelegate respondsToSelector:_cmd], @"IGListAdapter is consuming method also implemented by the collectionViewDelegate: %@", NSStringFromSelector(_cmd));
     return [[self sectionControllerForSection:section] inset];
 }
 
 - (CGFloat)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout minimumLineSpacingForSectionAtIndex:(NSInteger)section {
-    IGAssert(![self.collectionViewDelegate respondsToSelector:_cmd], @"IGListAdapter is consuming method also implemented by the collectionViewDelegate: %@", NSStringFromSelector(_cmd));
+    IGWarn(![self.collectionViewDelegate respondsToSelector:_cmd], @"IGListAdapter is consuming method also implemented by the collectionViewDelegate: %@", NSStringFromSelector(_cmd));
     return [[self sectionControllerForSection:section] minimumLineSpacing];
 }
 
 - (CGFloat)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout minimumInteritemSpacingForSectionAtIndex:(NSInteger)section {
-    IGAssert(![self.collectionViewDelegate respondsToSelector:_cmd], @"IGListAdapter is consuming method also implemented by the collectionViewDelegate: %@", NSStringFromSelector(_cmd));
+    IGWarn(![self.collectionViewDelegate respondsToSelector:_cmd], @"IGListAdapter is consuming method also implemented by the collectionViewDelegate: %@", NSStringFromSelector(_cmd));
     return [[self sectionControllerForSection:section] minimumInteritemSpacing];
 }
 
 - (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout referenceSizeForHeaderInSection:(NSInteger)section {
-    IGAssert(![self.collectionViewDelegate respondsToSelector:_cmd], @"IGListAdapter is consuming method also implemented by the collectionViewDelegate: %@", NSStringFromSelector(_cmd));
+    IGWarn(![self.collectionViewDelegate respondsToSelector:_cmd], @"IGListAdapter is consuming method also implemented by the collectionViewDelegate: %@", NSStringFromSelector(_cmd));
     NSIndexPath *indexPath = [NSIndexPath indexPathForItem:0 inSection:section];
     return [self sizeForSupplementaryViewOfKind:UICollectionElementKindSectionHeader atIndexPath:indexPath];
 }
 
 - (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout*)collectionViewLayout referenceSizeForFooterInSection:(NSInteger)section {
-    IGAssert(![self.collectionViewDelegate respondsToSelector:_cmd], @"IGListAdapter is consuming method also implemented by the collectionViewDelegate: %@", NSStringFromSelector(_cmd));
+    IGWarn(![self.collectionViewDelegate respondsToSelector:_cmd], @"IGListAdapter is consuming method also implemented by the collectionViewDelegate: %@", NSStringFromSelector(_cmd));
     NSIndexPath *indexPath = [NSIndexPath indexPathForItem:0 inSection:section];
     return [self sizeForSupplementaryViewOfKind:UICollectionElementKindSectionFooter atIndexPath:indexPath];
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -52,6 +52,11 @@ NS_SWIFT_NAME(ListCollectionContext)
 @property (nonatomic, readonly) CGPoint containerContentOffset;
 
 /**
+ The trait collection of the collection view.
+ */
+@property (nonatomic, nullable, readonly) UITraitCollection *traitCollection;
+
+/**
  The current scrolling traits of the underlying collection view.
  */
 @property (nonatomic, readonly) IGListCollectionScrollingTraits scrollingTraits;
@@ -93,6 +98,21 @@ NS_SWIFT_NAME(ListCollectionContext)
  */
 - (nullable __kindof UICollectionViewCell *)cellForItemAtIndex:(NSInteger)index
                                              sectionController:(IGListSectionController *)sectionController;
+
+/**
+ Returns the supplementary view in the collection at the specified index for the section controller.
+
+ @param elementKind The element kind of the supplementary view.
+ @param index The index of the desired cell.
+ @param sectionController The section controller requesting this information.
+
+ @return The collection reusable view, or `nil` if not found.
+
+ @warning This method may return `nil` if the cell is offscreen.
+ */
+- (nullable __kindof UICollectionReusableView *)viewForSupplementaryElementOfKind:(NSString *)elementKind
+                                                                          atIndex:(NSInteger)index
+                                                                sectionController:(IGListSectionController *)sectionController;
 
 /**
  Returns the fully visible cells for the given section controller.

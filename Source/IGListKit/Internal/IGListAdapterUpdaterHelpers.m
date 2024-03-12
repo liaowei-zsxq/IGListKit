@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -128,4 +128,12 @@ IGListBatchUpdateData *IGListApplyUpdatesToCollectionView(UICollectionView *coll
                                                                                moveIndexPaths:itemMoves];
     [collectionView ig_applyBatchUpdateData:updateData];
     return updateData;
+}
+
+NSIndexSet *IGListSectionIndexFromIndexPaths(NSArray<NSIndexPath *> *indexPaths) {
+    NSMutableIndexSet *sections = [NSMutableIndexSet new];
+    for (NSIndexPath *indexPath in indexPaths) {
+        [sections addIndex:indexPath.section];
+    }
+    return sections;
 }

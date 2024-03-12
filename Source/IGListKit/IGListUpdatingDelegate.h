@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -195,6 +195,12 @@ NS_SWIFT_NAME(ListUpdatingDelegate)
  @param sections The sections to reload.
  */
 - (void)reloadCollectionView:(UICollectionView *)collectionView sections:(NSIndexSet *)sections;
+
+/**
+ True if the updater is currently updating the source of truth, like executing applySectionDataBlock and
+ itemUpdates just before updating the UICollectionView.
+ */
+- (BOOL)isInDataUpdateBlock;
 
 @end
 

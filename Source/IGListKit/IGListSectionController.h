@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -83,6 +83,15 @@ NS_SWIFT_NAME(ListSectionController)
  @note The default implementation returns YES. **Calling super is not required.**
  */
 - (BOOL)shouldSelectItemAtIndex:(NSInteger)index;
+
+/**
+ Asks the section controller if the cell at the specified index path should be deselected
+
+ @param index The index of cell to be deselected.
+
+ @note The default implementation returns YES. **Calling super is not required.**
+ */
+- (BOOL)shouldDeselectItemAtIndex:(NSInteger)index;
 
 /**
  Tells the section controller that the cell at the specified index path was selected.

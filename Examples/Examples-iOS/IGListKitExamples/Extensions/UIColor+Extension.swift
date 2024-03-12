@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -12,6 +12,22 @@ extension UIColor {
     class var background: UIColor {
         if #available(iOS 13.0, *) {
             return .systemBackground
+        } else {
+            return .white
+        }
+    }
+
+    class var groupedBackground: UIColor {
+        if #available(iOS 13.0, *) {
+            return .systemGroupedBackground
+        } else {
+            return .groupTableViewBackground
+        }
+    }
+
+    class var secondaryGroupedBackground: UIColor {
+        if #available(iOS 13.0, *) {
+            return .secondarySystemGroupedBackground
         } else {
             return .white
         }

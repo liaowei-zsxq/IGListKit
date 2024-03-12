@@ -72,7 +72,7 @@ function generate_ig_list_diff_kit_spm_private_headers() {
 }
 
 function generate_ig_list_diff_kit_spm_sources() {
-    echo "Generate symbolic links for all public implementtions. *.m & *.mm"
+    echo "Generate symbolic links for all public implementations. *.m & *.mm"
     echo "Generated under ${SPM_IG_LIST_DIFF_KIT_SOURCES_PATH}"
 
     sources_list=$(
@@ -114,7 +114,6 @@ function generate_ig_list_kit_spm_public_headers() {
 
     public_headers_list=$(
         find "Source/IGListKit" \
-        \! -name "IGListBindingSingleSectionController.[hm]" \
         -name "*.[h]" \
         -type f -not -path "spm/*" \
         -not -path "Source/IGListKit/Internal/*" \
@@ -172,13 +171,12 @@ function generate_ig_list_kit_spm_private_headers() {
 }
 
 function generate_ig_list_kit_spm_sources() {
-    echo "Generate symbolic links for all public implementtions. *.m"
+    echo "Generate symbolic links for all public implementations. *.m"
     echo "Generated under ${SPM_IG_LIST_KIT_SOURCES_PATH}"
 
     sources_list=$(
         find "Source/IGListKit" \
-        \! -name "IGListBindingSingleSectionController.[hm]" \
-        -name "*.m" -o -name "*.mm"
+        -name "*.m" -o -name "*.mm" \
         -type f -not -path "spm/*" \
         -not -path "Examples/*" | sed "s| \([^/]\)|:\1|g")
 

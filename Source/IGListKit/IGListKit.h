@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -36,6 +36,7 @@ FOUNDATION_EXPORT const unsigned char IGListKitVersionString[];
 #import "IGListBindingSectionController.h"
 #import "IGListBindingSectionControllerDataSource.h"
 #import "IGListBindingSectionControllerSelectionDelegate.h"
+#import "IGListBindingSingleSectionController.h"
 #import "IGListCollectionContext.h"
 #import "IGListCollectionView.h"
 #import "IGListCollectionViewLayout.h"
@@ -47,6 +48,7 @@ FOUNDATION_EXPORT const unsigned char IGListKitVersionString[];
 #import "IGListSectionController.h"
 #import "IGListSingleSectionController.h"
 #import "IGListSupplementaryViewSource.h"
+#import "IGListTransitionData.h"
 #import "IGListTransitionDelegate.h"
 #import "IGListUpdatingDelegate.h"
 #import "IGListWorkingRangeDelegate.h"

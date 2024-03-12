@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -128,16 +128,10 @@ static void adjustZIndexForAttributes(UICollectionViewLayoutAttributes *attribut
     const NSInteger maxZIndexPerSection = 1000;
     const NSInteger baseZIndex = attributes.indexPath.section * maxZIndexPerSection;
 
-    switch (attributes.representedElementCategory) {
-        case UICollectionElementCategoryCell:
-            attributes.zIndex = baseZIndex + attributes.indexPath.item;
-            break;
-        case UICollectionElementCategorySupplementaryView:
-            attributes.zIndex = baseZIndex + maxZIndexPerSection - 1;
-            break;
-        case UICollectionElementCategoryDecorationView:
-            attributes.zIndex = baseZIndex - 1;
-            break;
+    if (attributes.representedElementCategory == UICollectionElementCategoryCell) {
+        attributes.zIndex = baseZIndex + attributes.indexPath.item;
+    } else if (attributes.representedElementCategory == UICollectionElementCategorySupplementaryView) {
+        attributes.zIndex = baseZIndex + maxZIndexPerSection - 1;
     }
 }
 
@@ -373,16 +367,18 @@ static void adjustZIndexForAttributes(UICollectionViewLayoutAttributes *attribut
     UICollectionView *collectionView = self.collectionView;
     const UIEdgeInsets contentInset = collectionView.ig_contentInset;
     switch (self.scrollDirection) {
-        case UICollectionViewScrollDirectionVertical: {
-            const CGFloat height = CGRectGetMaxY(section.bounds) + section.insets.bottom;
-            return CGSizeMake(CGRectGetWidth(collectionView.bounds) - contentInset.left - contentInset.right, height);
-        }
-        case UICollectionViewScrollDirectionHorizontal: {
-            const CGFloat width = CGRectGetMaxX(section.bounds) + section.insets.right;
-            return CGSizeMake(width, CGRectGetHeight(collectionView.bounds) - contentInset.top - contentInset.bottom);
-        }
+        case UICollectionViewScrollDirectionVertical:
+            return CGSizeMake(CGRectGetWidth(collectionView.bounds) - contentInset.left - contentInset.right,
+                              CGRectGetMaxY(section.bounds) + section.insets.bottom);
+        case UICollectionViewScrollDirectionHorizontal:
+            return CGSizeMake(CGRectGetMaxX(section.bounds) + section.insets.right,
+                              CGRectGetHeight(collectionView.bounds) - contentInset.top - contentInset.bottom);
     }
+}
 
+- (void)invalidateLayout {
+    _minimumInvalidatedSection = 0;
+    [super invalidateLayout];
 }
 
 - (void)invalidateLayoutWithContext:(IGListCollectionViewLayoutInvalidationContext *)context {
@@ -393,11 +389,9 @@ static void adjustZIndexForAttributes(UICollectionViewLayoutAttributes *attribut
 
     if (hasInvalidatedItemIndexPaths
         || [context invalidateEverything]
+        || ([context invalidateDataSourceCounts] && _minimumInvalidatedSection == NSNotFound) // if count changed and we don't have information on the minimum invalidated section
         || context.ig_invalidateAllAttributes) {
         // invalidates all
-        _minimumInvalidatedSection = 0;
-    } else if ([context invalidateDataSourceCounts] && _minimumInvalidatedSection == NSNotFound) {
-        // invalidate all if count changed and we don't have information on the minimum invalidated section
         _minimumInvalidatedSection = 0;
     }
 
@@ -480,11 +474,7 @@ static void adjustZIndexForAttributes(UICollectionViewLayoutAttributes *attribut
 - (void)_calculateLayoutIfNeeded {
     if (_minimumInvalidatedSection == NSNotFound) {
         return;
-    }
-
-    // purge attribute caches so they are rebuilt
-    [_attributesCache removeAllObjects];
-    [self _resetSupplementaryAttributesCache];
+    }    
 
     UICollectionView *collectionView = self.collectionView;
     id<UICollectionViewDelegateFlowLayout> delegate = (id<UICollectionViewDelegateFlowLayout>)collectionView.delegate;
@@ -546,6 +536,8 @@ static void adjustZIndexForAttributes(UICollectionViewLayoutAttributes *attribut
 
         for (NSInteger item = 0; item < itemCount; item++) {
             NSIndexPath *indexPath = [NSIndexPath indexPathForItem:item inSection:section];
+            // Following method subsequentally calls -layoutAttributesForItemAtIndexPath: and caches attributes that are not ready yet (we only calculate them at the end of this for loop)
+            // This results in _attributesCache[indexPath] being set to incorrect value. If we end up calling prepareLayout in response to frame change we
             const CGSize size = [delegate collectionView:collectionView layout:self sizeForItemAtIndexPath:indexPath];
 
             IGAssert(CGSizeGetLengthInDirection(size, fixedDirection) <= paddedLengthInFixedDirection
@@ -661,6 +653,12 @@ static void adjustZIndexForAttributes(UICollectionViewLayoutAttributes *attribut
         _sectionData[section].lastItemCoordInFixedDirection = itemCoordInFixedDirection;
         _sectionData[section].lastNextRowCoordInScrollDirection = nextRowCoordInScrollDirection;
     }
+
+    // Reason we are purging attributes at the end is because in some circumstances calling
+    // -[delegate collectionView: layout: sizeForItemAtIndexPath:] results in creating the cache with incorrect values
+    // See the comment next to the call for more information
+    [_attributesCache removeAllObjects];
+    [self _resetSupplementaryAttributesCache];
 
     _minimumInvalidatedSection = NSNotFound;
 }

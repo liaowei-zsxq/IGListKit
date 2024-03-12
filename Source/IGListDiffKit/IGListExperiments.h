@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -18,10 +18,12 @@ typedef NS_OPTIONS (NSInteger, IGListExperiment) {
     IGListExperimentNone = 1 << 1,
     /// Test invalidating layout when cell reloads/updates in IGListBindingSectionController.
     IGListExperimentInvalidateLayoutForUpdates = 1 << 2,
-    /// Test skipping performBatchUpdate if we don't have any updates.
-    IGListExperimentSkipPerformUpdateIfPossible = 1 << 3,
-    /// Test skipping creating {view : section controller} map, which has inconsistency issue.
-    IGListExperimentSkipViewSectionControllerMap = 1 << 4
+    /// Throw NSInternalInconsistencyException during an update
+    IGListExperimentThrowOnInconsistencyException = 1 << 3,
+    /// Test keeping a strong pointer to the collectionView.dataSource during a batch update to avoid a crash
+    IGListExperimentKeepPointerToCollectionViewDataSource = 1 << 4,
+    /// Test keeping disable all animation on updates
+    IGListExperimentDisableAnimationOnUpdates= 1 << 5
 };
 
 /**

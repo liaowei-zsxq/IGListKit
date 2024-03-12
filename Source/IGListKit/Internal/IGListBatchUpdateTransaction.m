@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -136,14 +136,18 @@ typedef NS_ENUM (NSInteger, IGListBatchUpdateTransactionMode) {
     [self.delegate listAdapterUpdater:self.updater didDiffWithResults:diffResult onBackgroundThread:onBackground];
 
     @try {
-        if (self.collectionView.dataSource == nil) {
+        // Experiment with keeping a pointer to the self.collectionView.dataSource, because we're seeing a crash where it could be missing.
+        const BOOL keepDataSource = IGListExperimentEnabled(self.config.experiments, IGListExperimentKeepPointerToCollectionViewDataSource);
+        id<UICollectionViewDataSource> const collectionViewDataSource = keepDataSource ? self.collectionView.dataSource : nil;
+        
+        if (self.collectionView.dataSource == nil || (keepDataSource && collectionViewDataSource == nil)) {
             // If the data source is nil, we should not call any collection view update.
             [self _bail];
         } else if (diffResult.changeCount > 100 && self.config.allowsReloadingOnTooManyUpdates) {
             [self _reload];
         } else if (self.sectionData && [self.collectionView numberOfSections] != self.sectionData.fromObjects.count) {
             // If data is nil, there are no section updates.
-            IGFailAssert(@"The UICollectionView's section count (%li) didn't match the IGListAdapter's count (%li), so we can't performBatchUpdates. Falling back to reloadData.",
+            IGWarnAssert(@"The UICollectionView's section count (%li) didn't match the IGListAdapter's count (%li), so we can't performBatchUpdates. Falling back to reloadData.",
                          (long)[self.collectionView numberOfSections],
                          (long)self.sectionData.fromObjects.count);
             [self _reload];
@@ -169,37 +173,8 @@ willPerformBatchUpdatesWithCollectionView:self.collectionView
                             toObjects:self.sectionData.toObjects
                    listIndexSetResult:diffResult
                              animated:self.animated];
-
-    // Experiment to skip calling `[UICollectionView performBatchUpdates ...]` if we don't have changes. It does
-    // require us to call `_applyDataUpdates` outside the update block, but that should be ok as long as we call
-    // `performBatchUpdates` right after.
-    const BOOL skipPerformUpdateIfPossible = IGListExperimentEnabled(self.config.experiments, IGListExperimentSkipPerformUpdateIfPossible);
-    if (skipPerformUpdateIfPossible) {
-        // From Apple docs: If the collection view's layout is not up to date before you call performBatchUpdates, a reload may
-        // occur. To avoid problems, you should update your data model inside the updates block or ensure the layout is
-        // updated before you call performBatchUpdates(_:completion:).
-        [self.collectionView layoutIfNeeded];
-
-        [self _applyDataUpdates];
-
-        if (!diffResult.hasChanges && !self.inUpdateItemCollector.hasChanges) {
-            // If we don't have any section or item changes, take a shortcut.
-            [self _finishWithoutUpdate];
-            return;
-        }
-    }
-
-    // **************************
-    // **************************
-    // IMPORTANT: The very next thing we call must be `[UICollectionView performBatchUpdates ...]`, because
-    // we're in a state where the adapter is synced, but not the `UICollectionView`.
-    // **************************
-    // **************************
-
     void (^updates)(void) = ^ {
-        if (!skipPerformUpdateIfPossible) {
-            [self _applyDataUpdates];
-        }
+        [self _applyDataUpdates];
         [self _applyCollectioViewUpdates:diffResult];
     };
 
@@ -207,12 +182,46 @@ willPerformBatchUpdatesWithCollectionView:self.collectionView
         [self _didPerformBatchUpdate:finished];
     };
 
-    if (self.animated) {
-        [self.collectionView performBatchUpdates:updates completion:completion];
-    } else {
-        [UIView performWithoutAnimation:^{
+    @try {
+        if (self.animated) {
             [self.collectionView performBatchUpdates:updates completion:completion];
-        }];
+        } else {
+            [UIView performWithoutAnimation:^{
+                [self.collectionView performBatchUpdates:updates completion:completion];
+            }];
+        }
+    }
+    @catch (NSException *exception) {
+        /// Currently, we don't throw on `NSInternalInconsistencyException`, like the comment below explains. This was a temporary workaround for the large
+        /// volume of exceptions that started with Xcode 14.3. Now, lets use this experiment flag to slowly reintroduce it, and eventually remove the workaround.
+        const BOOL ignoreException = !IGListExperimentEnabled(self.config.experiments, IGListExperimentThrowOnInconsistencyException);
+        if (ignoreException && [[exception name] isEqualToString:NSInternalInconsistencyException]) {
+            /// As part of S342566 we have to recover from crashing the app since Xcode 14.3 has shipped
+            /// with a different build SDK that changes the runtime behavior of -performBatchUpdates: issues.
+            /// When we are performing batch updates, it's on us to advance the data source to the new state
+            /// inside the updates closure.
+            /// The data source must return the old counts up until the updates closure executes, and must return
+            /// the new counts after the updates closure finishes executing.
+            /// In prior iOS releases, UICollectionView would log an error message to the console for certain cases
+            /// of invalid updates, and instead fall back to reloadData. Using reloadData is destructive to UI state
+            /// and can negatively impact performance, but this was kept the app running so far without us noticing!
+            /// Now that UIKit has changed this runtime behavior we are going to apply the same workaround for the crash while we work
+            /// with our product team to properly fix their data source changes outside of the -performBatchUpdatesBlock:
+            /// IGLisKit processed a new being as an assert that requires investigation,
+            /// since it will be processed as invalid data source state that needs a reload.
+            IGFailure(@"IGListKit caught exception (%@): %@", exception.name, exception.reason);
+            [self begin];
+            return;
+        } else {
+            [self.delegate listAdapterUpdater:self.updater
+                               collectionView:self.collectionView
+                       willCrashWithException:exception
+                                  fromObjects:self.sectionData.fromObjects
+                                    toObjects:self.sectionData.toObjects
+                                   diffResult:diffResult
+                                      updates:(id)_actualCollectionViewUpdates];
+            @throw exception;
+        }
     }
 }
 
